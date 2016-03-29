@@ -1,12 +1,16 @@
 // Package alice provides a convenient way to chain http handlers.
+// This fork changes the http.Handler to httprouter.Handle
+// So this can easily work with httprouter package
 package alice
 
-import "net/http"
+import (
+	"github.com/julienschmidt/httprouter"
+)
 
 // A constructor for a piece of middleware.
 // Some middleware use this constructor out of the box,
 // so in most cases you can just pass somepackage.New
-type Constructor func(http.Handler) http.Handler
+type Constructor func(httprouter.Handle) httprouter.Handle
 
 // Chain acts as a list of http.Handler constructors.
 // Chain is effectively immutable:
@@ -42,11 +46,7 @@ func New(constructors ...Constructor) Chain {
 // For proper middleware, this should cause no problems.
 //
 // Then() treats nil as http.DefaultServeMux.
-func (c Chain) Then(h http.Handler) http.Handler {
-	if h == nil {
-		h = http.DefaultServeMux
-	}
-
+func (c Chain) Then(h httprouter.Handle) httprouter.Handle {
 	for i := len(c.constructors) - 1; i >= 0; i-- {
 		h = c.constructors[i](h)
 	}
@@ -62,11 +62,11 @@ func (c Chain) Then(h http.Handler) http.Handler {
 //     c.ThenFunc(fn)
 //
 // ThenFunc provides all the guarantees of Then.
-func (c Chain) ThenFunc(fn http.HandlerFunc) http.Handler {
+func (c Chain) ThenFunc(fn httprouter.Handle) httprouter.Handle {
 	if fn == nil {
 		return c.Then(nil)
 	}
-	return c.Then(http.HandlerFunc(fn))
+	return c.Then(httprouter.Handle(fn))
 }
 
 // Append extends a chain, adding the specified constructors
